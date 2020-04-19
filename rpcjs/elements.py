@@ -1,0 +1,307 @@
+import json
+import io
+import base64
+from flask import url_for, escape
+
+from rpcjs.attributes import Attributes
+from rpcjs.events import Events
+
+
+def get_resources():
+    """Fetch local resource file"""
+    BOOTSTRAP = url_for('static', filename='bootstrap.min.css')
+    DARKLY = url_for('static', filename='bootstrap.darkly.min.css')
+    JQUERY = url_for('static', filename='jquery-3.4.1.slim.min.js')
+    POPPER = url_for('static', filename='popper.min.js')
+    SOCKETIO = url_for('static', filename='socket.io.js')
+    BOOTSTRAP_JS = url_for('static', filename='bootstrap.min.js')
+    CUSTOM_JS = url_for('static', filename='custom.js')
+
+    return DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS
+
+
+def ul(items):
+    """Generate an unordered list
+
+    Parameters
+    ----------
+    items: list
+        list of DOM element to make a unordered list
+    """
+    items = ''.join(f'<li>{i}</li>' for i in items)
+    return f'<ul>{items}</ul>'
+
+
+def ol(items):
+    """Generate an ordered list
+
+        Parameters
+        ----------
+        items: list
+            list of DOM element to make a ordered list
+        """
+    items = ''.join(f'<li>{i}</li>' for i in items)
+    return f'<ul>{items}</ul>'
+
+
+def div(*items, style=None):
+    """Generate a new div
+
+    Parameters
+    ----------
+    items: argument list
+        DOM children of this div
+    """
+    children = ''.join(items)
+
+    if style is None:
+        return f'<div>{children}</div>'
+
+    return f'<div style="{style}">{children}</div>'
+
+
+def div_row(*items, style=None):
+    """Generate a new div with a row class
+
+    Parameters
+    ----------
+    items: argument list
+        DOM children of this div
+    """
+    children = ''.join(items)
+    attr = []
+
+    if style is not None:
+        attr.append(f'style="{style}"')
+
+    attr = ' '.join(attr)
+    return f'<div class="row" {attr}>{children}</div>'
+
+
+def div_col(*items, size=None, style=None, id=None):
+    """Generate a new div with a col class
+
+    Parameters
+    ----------
+    items: argument list
+        DOM children of this div
+    """
+    children = ''.join(items)
+    attr = []
+
+    if style is not None:
+        attr.append(f'style="{style}"')
+
+    if id is not None:
+        attr.append(f'id="{id}"')
+
+    attr = ' '.join(attr)
+    if size is None:
+        return f'<div class="col" {attr}>{children}</div>'
+
+    return f'<div class="col-{size}" {attr}>{children}</div>'
+
+
+def header(name, level=1):
+    """Generate a new header
+
+    Parameters
+    ----------
+    items: str
+        name of the header
+
+    level: int
+        level of the header
+    """
+    return f'<h{level}>{name}</h{level}>'
+
+
+def link(name, ref):
+    """Generate a hyperlink
+
+    Parameters
+    ----------
+    name: str
+        name of the link
+
+    ref: str
+        reference of the link
+    """
+    return f'<a href="{ref}">{name}</a>'
+
+
+def span(name):
+    """Generate a new span
+
+    Parameters
+    ----------
+    name: str
+        DOM children of this div
+    """
+    return f'<span>{name}</span>'
+
+
+def code(name):
+    """Generate a new code
+
+    Parameters
+    ----------
+    name: str
+        DOM children of this div
+    """
+    return f'<code>{escape(name)}</code>'
+
+
+def chain(*args):
+    """Concatenate a list of DOM elements together
+
+    Parameters
+    ----------
+    items: argument list
+        DOM elements
+    """
+    return ''.join(args)
+
+
+def pre(v):
+    """Generate a new pre
+
+    Parameters
+    ----------
+    v: str
+        DOM children of this div
+    """
+    return f'<pre>{escape(v)}</pre>'
+
+
+def base_page(title, header, body, footer):
+    """Base HTML5 page
+
+    Parameters
+    ----------
+    title: str
+        Title of the page
+
+    header: str
+        Header section of the page
+
+    body: str
+        Body section of the page
+
+    footer: str
+        Footer section of the page
+    """
+    DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS = get_resources()
+    return f"""
+    <!doctype html>
+    <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <link rel="stylesheet" href="{DARKLY}">
+            <title>{title}</title>
+        </head>
+        <body class="container-fluid">
+            <header>{header}</header>
+            {body}
+            <footer>{footer}</footer>
+            <script src="{JQUERY}"></script>
+            <script src="{POPPER}"></script>
+            <script src="{BOOTSTRAP_JS}"></script>
+            <script src="{SOCKETIO}"></script>
+            <script src="{CUSTOM_JS}"></script>
+        </body>
+    </html>
+    """
+
+def menu_item(name, href):
+    return f'<li class="nav-item"><a href="{href}" class="nav-link">{name}</a></li>'
+
+
+def menu(*items):
+    list_items = ''.join(menu_item(name, link) for name, link in items)
+    return f'<ul class="navbar-nav mr-auto">{list_items}</ul>'
+
+
+def navbar(**kwargs):
+    html_menu = menu(*kwargs.items())
+    return f"""
+    <div class="mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a href='/' class="navbar-brand">Olympus</a>
+            {html_menu}
+        </nav>
+    </div>"""
+
+
+def select_dropdown(options, id):
+    """Generate a new select dropdown form
+
+    Parameters
+    ----------
+    options: List[str]
+        list of options the user can select
+
+    id: str
+        DOM id used to refer to this input form
+    """
+    html_options = ''.join(f'<option>{opt}</option>' for opt in options)
+    return f"""
+    <select class="form-control form-control-lg" id="{id}">
+        {html_options}
+    </select>
+    """
+
+
+def iframe(html, id=None):
+    attr = []
+    if id is not None:
+        attr.append(f'id="{id}"')
+
+    attr = ''.join(attr)
+    return f"""
+        <div style="width: 100%; height: 100%;">
+            <iframe 
+                {attr}
+                style="position: absolute; width: 100%; height: 100%;"
+                frameborder="0"
+                sandbox="allow-scripts" 
+                srcdoc="{escape(html)}">
+            </iframe>
+        </div>
+        """
+
+
+def altair_plot(chart, with_iframe=True):
+    """Export an altair chart figure into HTML format"""
+    buffer = io.StringIO()
+    chart.save(buffer, 'html')
+    html = buffer.getvalue()
+
+    if not with_iframe:
+        return html
+
+    return iframe(html)
+
+
+def plotly_plot(figure):
+    """Export a plotly figure into HTML format"""
+    import plotly.io
+
+    buffer = io.StringIO()
+    plotly.io.write_html(figure, buffer, auto_play=False, full_html=False)
+    html = buffer.getvalue()
+
+    return html
+
+
+def pyplot_plot(figure, **save_args):
+    """Export a matplotlib figure into HTML format"""
+    out_img = io.BytesIO()
+    figure.savefig(out_img, format='png', **save_args)
+    figure.clf()
+
+    out_img.seek(0)  # rewind file
+    encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
+    uri = "data:image/png;base64,{}".format(encoded)
+    return f"""<img src="{uri}"/>"""

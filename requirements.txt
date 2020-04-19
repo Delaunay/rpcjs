@@ -1,0 +1,5 @@
+plotly
+altair
+eventlet
+flask
+flask-socketio
