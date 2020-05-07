@@ -1,4 +1,4 @@
-import olympus.dashboard.elements as html
+from .elements import base_page
 
 
 class Page:
@@ -19,7 +19,7 @@ class Page:
         return self.base(self.main(*args, **kwargs))
 
     def base(self, body):
-        return html.base_page(self.title, self.header, body, self.footer)
+        return base_page(self.title, self.header, body, self.footer)
 
     def main(self, *args, **kwargs):
         raise NotImplementedError

@@ -69,6 +69,14 @@ socket.on("set_attribute", function(data) {
 });
 
 
+socket.on("redirect", function(data) {
+    log("redirect to " + data);
+
+    var url = data["url"];
+    window.location.href = url;
+});
+
+
 socket.on("set_text", function(data) {
     log("set_text " + data);
 

@@ -1,26 +1,33 @@
 import json
 import io
 import base64
+import uuid
+from typing import TypeVar
+
 from flask import url_for, escape
 
-from rpcjs.attributes import Attributes
-from rpcjs.events import Events
+HTML = TypeVar('HTML')
+
+
+def unique_id():
+    import uuid
+    return uuid.uuid4().hex[:16]
 
 
 def get_resources():
     """Fetch local resource file"""
-    BOOTSTRAP = url_for('static', filename='bootstrap.min.css')
-    DARKLY = url_for('static', filename='bootstrap.darkly.min.css')
-    JQUERY = url_for('static', filename='jquery-3.4.1.slim.min.js')
-    POPPER = url_for('static', filename='popper.min.js')
-    SOCKETIO = url_for('static', filename='socket.io.js')
+    BOOTSTRAP    = url_for('static', filename='bootstrap.min.css')
+    DARKLY       = url_for('static', filename='bootstrap.darkly.min.css')
+    JQUERY       = url_for('static', filename='jquery.3.4.1.slim.min.js')
+    POPPER       = url_for('static', filename='popper.min.js')
+    SOCKETIO     = url_for('static', filename='socket.io.js')
     BOOTSTRAP_JS = url_for('static', filename='bootstrap.min.js')
-    CUSTOM_JS = url_for('static', filename='custom.js')
+    CUSTOM_JS    = url_for('static', filename='rpcjs.js')
 
-    return DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS
+    return BOOTSTRAP, DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS
 
 
-def ul(items):
+def ul(items) -> HTML:
     """Generate an unordered list
 
     Parameters
@@ -32,7 +39,7 @@ def ul(items):
     return f'<ul>{items}</ul>'
 
 
-def ol(items):
+def ol(items) -> HTML:
     """Generate an ordered list
 
         Parameters
@@ -44,7 +51,7 @@ def ol(items):
     return f'<ul>{items}</ul>'
 
 
-def div(*items, style=None):
+def div(*items, style=None, id=None) -> HTML:
     """Generate a new div
 
     Parameters
@@ -53,14 +60,19 @@ def div(*items, style=None):
         DOM children of this div
     """
     children = ''.join(items)
+    attr = []
 
-    if style is None:
-        return f'<div>{children}</div>'
+    if style is not None:
+        attr.append(f'style="{style}"')
 
-    return f'<div style="{style}">{children}</div>'
+    if id is not None:
+        attr.append(f'id="{id}"')
+
+    attr = ' '.join(attr)
+    return f'<div {attr}>{children}</div>'
 
 
-def div_row(*items, style=None):
+def div_row(*items, style=None) -> HTML:
     """Generate a new div with a row class
 
     Parameters
@@ -78,7 +90,7 @@ def div_row(*items, style=None):
     return f'<div class="row" {attr}>{children}</div>'
 
 
-def div_col(*items, size=None, style=None, id=None):
+def div_col(*items, size=None, style=None, id=None, classes=None) -> HTML:
     """Generate a new div with a col class
 
     Parameters
@@ -95,14 +107,18 @@ def div_col(*items, size=None, style=None, id=None):
     if id is not None:
         attr.append(f'id="{id}"')
 
+    if classes is not None:
+        attr.append(f'class="{classes}"')
+    elif size is not None:
+        attr.append(f'class="col-{size}"')
+    else:
+        attr.append(f'class="col"')
+
     attr = ' '.join(attr)
-    if size is None:
-        return f'<div class="col" {attr}>{children}</div>'
-
-    return f'<div class="col-{size}" {attr}>{children}</div>'
+    return f'<div {attr}>{children}</div>'
 
 
-def header(name, level=1):
+def header(name, level=1) -> HTML:
     """Generate a new header
 
     Parameters
@@ -116,7 +132,7 @@ def header(name, level=1):
     return f'<h{level}>{name}</h{level}>'
 
 
-def link(name, ref):
+def link(name, ref) -> HTML:
     """Generate a hyperlink
 
     Parameters
@@ -130,7 +146,7 @@ def link(name, ref):
     return f'<a href="{ref}">{name}</a>'
 
 
-def span(name):
+def span(name) -> HTML:
     """Generate a new span
 
     Parameters
@@ -141,7 +157,7 @@ def span(name):
     return f'<span>{name}</span>'
 
 
-def code(name):
+def code(name) -> HTML:
     """Generate a new code
 
     Parameters
@@ -152,7 +168,7 @@ def code(name):
     return f'<code>{escape(name)}</code>'
 
 
-def chain(*args):
+def chain(*args) -> HTML:
     """Concatenate a list of DOM elements together
 
     Parameters
@@ -163,7 +179,7 @@ def chain(*args):
     return ''.join(args)
 
 
-def pre(v):
+def pre(v) -> HTML:
     """Generate a new pre
 
     Parameters
@@ -174,7 +190,7 @@ def pre(v):
     return f'<pre>{escape(v)}</pre>'
 
 
-def base_page(title, header, body, footer):
+def base_page(title, header, body, footer) -> HTML:
     """Base HTML5 page
 
     Parameters
@@ -191,13 +207,14 @@ def base_page(title, header, body, footer):
     footer: str
         Footer section of the page
     """
-    DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS = get_resources()
+    BOOTSTRAP, DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS = get_resources()
     return f"""
     <!doctype html>
     <html lang="en">
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <link rel="stylesheet" href="{BOOTSTRAP}">
             <link rel="stylesheet" href="{DARKLY}">
             <title>{title}</title>
         </head>
@@ -214,16 +231,103 @@ def base_page(title, header, body, footer):
     </html>
     """
 
-def menu_item(name, href):
+
+def show_messages(messages) -> HTML:
+    """Generate a new table displaying msqqueue messages
+
+    Parameters
+    ----------
+    messages: List[Messages]
+        list of messages
+    """
+
+    def make_row(m):
+        try:
+            data = json.dumps(m.message, indent=2)
+        except TypeError as e:
+            data = f'Not json serializable {e}'
+
+        return f"""
+        <tr>
+            <td>{m.uid}</td>
+            <td>{m.time}</td>
+            <td>{m.mtype}</td>
+            <td>{m.read}</td>
+            <td>{m.read_time}</td>
+            <td>{m.actioned}</td>
+            <td>{m.actioned_time}</td>
+            <td>{m.replying_to}</td>
+            <td><pre>{data}</pre></td>
+        </tr>
+        """
+    rows = ''.join([make_row(r) for r in messages])
+    return f"""
+    <table class="table">
+        <thead>
+            <th>uid</th>
+            <th>time</th>
+            <th>mtype</th>
+            <th>read</th>
+            <th>read_time</th>
+            <th>actioned</th>
+            <th>actioned_time</th>
+            <th>replying_to</th>
+            <th>message</th>
+        </thhead>
+        <tbody>
+            {rows}
+        </tbody>
+    </table>
+    """
+
+
+def show_agent(agents) -> HTML:
+    """Generate a new table displaying msqqueue agents
+
+    Parameters
+    ----------
+    agents: List[Agent]
+        list of agents
+    """
+    def make_row(m):
+        return f"""
+        <tr>
+            <td><a href="/queue/logs/0/{m.uid}">{m.uid}</a></td>
+            <td>{m.time}</td>
+            <td>{m.agent}</td>
+            <td>{m.alive}</td>
+            <td>{m.namespace}</td>
+            <td>{m.message}</td>
+        </tr>
+        """
+    rows = ''.join([make_row(r) for r in agents])
+    return f"""
+    <table class="table">
+        <thead>
+            <th>uid</th>
+            <th>time</th>
+            <th>name</th>
+            <th>alive</th>
+            <th>namespace</th>
+            <th>message</th>
+        </thhead>
+        <tbody>
+            {rows}
+        </tbody>
+    </table>
+    """
+
+
+def menu_item(name, href) -> HTML:
     return f'<li class="nav-item"><a href="{href}" class="nav-link">{name}</a></li>'
 
 
-def menu(*items):
+def menu(*items) -> HTML:
     list_items = ''.join(menu_item(name, link) for name, link in items)
     return f'<ul class="navbar-nav mr-auto">{list_items}</ul>'
 
 
-def navbar(**kwargs):
+def navbar(**kwargs) -> HTML:
     html_menu = menu(*kwargs.items())
     return f"""
     <div class="mb-3">
@@ -234,7 +338,18 @@ def navbar(**kwargs):
     </div>"""
 
 
-def select_dropdown(options, id):
+def sidebar(name='', **kwargs) -> HTML:
+    html_menu = menu(*kwargs.items())
+    return f"""
+    <div class="col-sm-2 col-md-2 col-lg-1 col-xl-1" style="height: 100vh;">
+        <ul class="nav flex-column">
+            {name}
+            {html_menu}
+        </ul>
+    </div>"""
+
+
+def select_dropdown(options, id=None):
     """Generate a new select dropdown form
 
     Parameters
@@ -247,10 +362,54 @@ def select_dropdown(options, id):
     """
     html_options = ''.join(f'<option>{opt}</option>' for opt in options)
     return f"""
-    <select class="form-control form-control-lg" id="{id}">
+    <select class="form-control form-control-sm" id="{id}">
         {html_options}
     </select>
     """
+
+
+def submit_input(name, id):
+    return f'<input type="submit" value="{name}" id="{id}">'
+
+
+def button(name, id):
+    return f'<button type="button" id="{id}">{name}</button> '
+
+
+def _radio_check_input(name, values, id, type='radio'):
+    dials = []
+    for i, v in enumerate(values):
+        dials.append(f"""
+            <input type="{type}" id="{id}-{i}" name="{name}" value="{v}">
+            <label for="{id}-{i}">{v}</label>""")
+
+    dials = ''.join(dials)
+    return f'<form>{dials}</form>'
+
+
+def radio_input(*args):
+    return _radio_check_input(*args, type='radio')
+
+
+def checkbox_input(*args):
+    return _radio_check_input(*args, type='checkbox')
+
+
+def text_input(placeholder, id, suggested=None):
+    suggestions = ''
+    attr = []
+
+    if suggested:
+        suggested_id = unique_id()
+
+        suggestions = ''.join([f'<option value="{s}">' for s in suggested])
+        suggestions = f' <datalist id="{suggested_id}">{suggestions}</datalist>'
+
+        attr.append(f'list="{suggested_id}"')
+
+    attr = ' '.join(attr)
+    return f'<input {attr} class="form-control form-control-lg" id="{id}" type="text" placeholder="{placeholder}">' \
+           f'{suggestions}'
 
 
 def iframe(html, id=None):
@@ -263,7 +422,7 @@ def iframe(html, id=None):
         <div style="width: 100%; height: 100%;">
             <iframe 
                 {attr}
-                style="position: absolute; width: 100%; height: 100%;"
+                style="position: absolute; width: 98%; height: 99%;"
                 frameborder="0"
                 sandbox="allow-scripts" 
                 srcdoc="{escape(html)}">
@@ -284,12 +443,12 @@ def altair_plot(chart, with_iframe=True):
     return iframe(html)
 
 
-def plotly_plot(figure):
+def plotly_plot(figure, full_html=False):
     """Export a plotly figure into HTML format"""
     import plotly.io
 
     buffer = io.StringIO()
-    plotly.io.write_html(figure, buffer, auto_play=False, full_html=False)
+    plotly.io.write_html(figure, buffer, auto_play=False, full_html=full_html)
     html = buffer.getvalue()
 
     return html
@@ -305,3 +464,67 @@ def pyplot_plot(figure, **save_args):
     encoded = base64.b64encode(out_img.read()).decode("ascii").replace("\n", "")
     uri = "data:image/png;base64,{}".format(encoded)
     return f"""<img src="{uri}"/>"""
+
+
+def spinner():
+    return """
+<div class="text-center">
+  <div class="spinner-border" role="status">
+    <span class="sr-only">Loading...</span>
+  </div>
+</div>
+    """
+
+
+def iframe_spinner():
+    return base_page('', '', spinner(), '')
+
+
+def show_exception():
+    import traceback
+    return pre(traceback.format_exc())
+
+
+# Helpers to random Plots asynchronously
+def _async_plot(callback, *args, plot_id, to_html, **kwargs):
+    from rpcjs.binding import set_attribute
+    from rpcjs.utils import make_remote_call
+
+    try:
+        chart = callback(*args, **kwargs)
+
+        if chart is None:
+            return make_remote_call(
+                set_attribute, plot_id, 'srcdoc', 'Not available')
+
+        html_chart = to_html(chart)
+
+        return make_remote_call(
+            set_attribute, plot_id, 'srcdoc', html_chart)
+
+    except:
+        return make_remote_call(
+            set_attribute, plot_id, 'srcdoc', show_exception())
+
+
+def _make_async_plot(to_html):
+    def _plot_async_base(fun, *args, id=None, **kwargs):
+        from rpcjs.dashboard import async_call
+
+        if id is None:
+            id = uuid.uuid4().hex[0:16]
+
+        async_call(_async_plot, fun, *args, plot_id=id, to_html=to_html, **kwargs)
+
+        # Returns an empty iframe
+        return iframe(iframe_spinner(), id=id)
+    return _plot_async_base
+
+
+def plotly_plot_full(plot):
+    return plotly_plot(plot, full_html=True)
+
+
+async_altair_plot = _make_async_plot(altair_plot)
+async_plotly_plot = _make_async_plot(plotly_plot_full)
+async_pyplot_plot = _make_async_plot(pyplot_plot)

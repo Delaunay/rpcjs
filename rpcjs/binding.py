@@ -1,5 +1,8 @@
 """Handles javascript remote function calls"""
 
+import logging
+log = logging.Logger(__name__)
+
 _socketio = None
 _socketio_ready = False
 
@@ -24,6 +27,7 @@ def register_event(event, handler, namespace='/'):
     handler: call
         Function to call when the event is fired
     """
+    assert callable(handler), f'{handler} is not callable'
     return socketio().on(event, namespace)(handler)
 
 
@@ -46,15 +50,27 @@ def set_attribute(id, attribute, value):
         new value of the attribute
     """
     if not _socketio_ready:
-        _pending_bind.append((id, attribute, value))
+        _pending_attr.append((id, attribute, value))
 
-    debug(f'set_attribute {attribute} of {id}')
+    log.debug(f'set_attribute {attribute} of {id}')
 
     socketio().emit('set_attribute', dict(
         id=id,
         attribute=attribute,
         value=value
     ))
+
+
+def redirect(url):
+    """Set the attribute of an element on the webpage
+
+    Parameters
+    ----------
+    url: str
+        url to redirect the client to
+    """
+    log.debug(f'redirect ot {url}')
+    socketio().emit('redirect', dict(url=url))
 
 
 def get_element_size(id, callback):
@@ -68,7 +84,7 @@ def get_element_size(id, callback):
     callback: Call
         Function to call with the size information `{width: w, height: h}`
     """
-    debug(f'get_element_size of {id}')
+    log.debug(f'get_element_size of {id}')
     socketio().emit('get_size', dict(
         id=id
     ))
@@ -96,10 +112,12 @@ def bind(id, event, handler, attribute=None, property=None):
     property: str
         Property of the element to return
     """
+    assert callable(handler), f'{handler} is not callable'
+
     if not _socketio_ready:
         _pending_bind.append((id, event, handler, attribute, property))
 
-    debug(f'binding `{id}` with `{event}` to `{handler}`')
+    log.debug(f'binding `{id}` with `{event}` to `{handler}`')
     # ask javascript to listen to events for a particular kind of event on our element
     socketio().emit('bind', {'id': id, 'event': event, 'attribute': attribute, 'property': property})
     # when the event happen js will send us back the innerHTML of that element
@@ -112,7 +130,7 @@ def handshake_event():
     global _socketio_ready, _pending_attr, _pending_bind
 
     _socketio_ready = True
-    info('SocketIO connected')
+    log.info('SocketIO connected')
 
     if _pending_attr:
         for arg in _pending_attr:
@@ -131,4 +149,4 @@ def disconnect_event():
     """Called when socketIO disconnects from the server"""
     global _socketio_ready
     _socketio_ready = False
-    info('SocketIO disconnected')
+    log.info('SocketIO disconnected')
