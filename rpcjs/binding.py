@@ -49,8 +49,6 @@ def display_vega(id, spec):
 
 
 def send_new_data_vega(id, name, new_values):
-    print(f'send_new_data_vega {id} {name} {new_values}')
-
     socketio().emit('stream_data_' + id, dict(
         name=name,
         new_values=new_values
