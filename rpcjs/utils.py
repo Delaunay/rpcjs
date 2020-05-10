@@ -1,6 +1,10 @@
 import inspect
 import importlib
 
+import traceback
+import logging
+log = logging.Logger(__name__)
+
 
 def find_main_module(function):
     file = inspect.getmodule(function).__file__
@@ -68,4 +72,8 @@ def exec_remote_call(state):
     module = __import__(module_name, fromlist=[''])
     fun = getattr(module, function)
 
-    return fun(*args, **dict(kwargs))
+    try:
+        return fun(*args, **dict(kwargs))
+    except Exception as e:
+        print('Exception happened during remote execution')
+        log.error(traceback.format_exc())

@@ -110,20 +110,15 @@ appendStreamData = function (id) {
     return function(chart) {
         // Register the event handler
         socket.on('stream_data_' + id, function(data){
-            try {
-                var value_str = data['new_values']
-                var values = JSON.parse(value_str);
-                var name = data['name']
+            var values = data['new_values'];
+            var name = data['name']
 
-                var changeSet = vega
-                    .changeset()
-                    .insert(values);
+            var changeSet = vega
+                .changeset()
+                .insert(values);
 
-                // log('receiving ' + name + ' ' + values);
-                chart.view.change(name, changeSet).run();
-            } catch(e) {
-                log('Could not parse json, '+ value_str + ' ' + e); // error in the above string (in this case, yes)!
-            }
+            // log('receiving ' + name + ' ' + values);
+            chart.view.change(name, changeSet).run();
         });
         log('stream handler attached');
     }

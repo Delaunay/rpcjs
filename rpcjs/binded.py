@@ -1,11 +1,18 @@
 """HTML elements that are binded to python through javascript remote function calls"""
+import time
+import threading
+import json
+import io
 import logging
 
 from .elements import select_dropdown as static_select
-from .elements import text_input as static_text_input
+from .elements import text_input as static_text_input, div
 
-from .binding import bind
+from .dashboard import host, port
+from .binding import bind, send_new_data_vega, display_vega
 from .events import Events
+from .utils import make_remote_call
+
 
 # Global symbol that holds future value
 global_symbol = dict()
@@ -27,7 +34,7 @@ def _gen_sym(uid=None):
         return _gen_sym()
 
     global_symbol[uid] = None
-    return uid
+    return 'F' + uid
 
 
 # Set the value of a DOM element after a js callback
@@ -71,3 +78,71 @@ def text_input(placeholder='', callback=None, id=None):
     input_html = static_text_input(placeholder, id)
     bind('study_prefix', 'change', set_symbol_callback(id, callback), property='value')
     return FutureValue(id), input_html
+
+
+def streaming_iterator(id: str, name: str, callback, delay=1):
+    """
+
+    Parameters
+    ----------
+    id: str
+        DOM id of the plot
+
+    name: str
+        Name of the dataset the data is appended to
+
+    callback: Callable
+        Function that returns an iterator with the data to append
+
+    delay: int
+        Sleep time in second before sending data to the browser
+    """
+    from datetime import datetime
+
+    def to_dict(a):
+        if isinstance(a, datetime):
+            return a.timestamp()
+
+        raise TypeError(f'type {type(a)} not json serializable')
+
+    def run():
+        time.sleep(delay)
+
+        import socketio
+        socket = socketio.Client()
+        socket.connect(f'http://{host()}:{port()}')
+
+        for fragment in callback():
+            # Get rid of non jsonable stuff
+            good_json = json.loads(json.dumps(fragment, default=to_dict))
+
+            socket.emit(event='remote_process_result', data=make_remote_call(
+                send_new_data_vega, id, name, good_json))
+
+    t = threading.Thread(target=run)
+    t.start()
+
+
+def realtime_altair_plot(chart, generator, id=None, dataset_name=None):
+    import altair as alt
+
+    if dataset_name is None:
+        dataset_name = 'table'
+
+    if id is None:
+        id = _gen_sym(id)
+
+    chart.data = alt.Data(name=dataset_name)
+
+    buffer = io.StringIO()
+    chart.save(buffer, 'json')
+    json_spec = json.loads(buffer.getvalue())
+
+    # Send the spec to javascript
+    display_vega(id, json_spec)
+
+    # Start sending data to the browser
+    streaming_iterator(id, dataset_name, generator)
+
+    # reply a dummy div that will hold the chart
+    return div(id=id)
