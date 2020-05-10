@@ -96,6 +96,7 @@ class Dashboard:
         import os
         self.app = Flask(name, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
         self.app.debug = True
+        self.app.config['DEBUG'] = True
         self.app.config['SECRET_KEY'] = secret
         self.socket = SocketIO(self.app)
         self.routes = []

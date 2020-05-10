@@ -227,6 +227,10 @@ def base_page(title, header, body, footer) -> HTML:
             <script src="{BOOTSTRAP_JS}"></script>
             <script src="{SOCKETIO}"></script>
             <script src="{CUSTOM_JS}"></script>
+
+            <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+            <script src="https://cdn.jsdelivr.net/npm/vega-lite@4"></script>
+            <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
         </body>
     </html>
     """

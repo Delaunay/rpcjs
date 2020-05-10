@@ -33,6 +33,26 @@ def register_event(event, handler, namespace='/'):
 
 _pending_bind = []
 _pending_attr = []
+_pending_display = []
+
+
+def display_vega(id, spec):
+    if not _socketio_ready:
+        _pending_display.append((id, spec))
+
+    log.debug(f'display_vega {id}')
+
+    socketio().emit('display_vega', dict(
+        id=id,
+        spec=spec
+    ))
+
+
+def send_new_data_vega(id, name, new_values):
+    socketio().emit('stream_data_' + id, dict(
+        name=name,
+        new_values=new_values
+    ))
 
 
 def set_attribute(id, attribute, value):
@@ -127,7 +147,7 @@ def bind(id, event, handler, attribute=None, property=None):
 
 def handshake_event():
     """Called when socketIO connects to the server"""
-    global _socketio_ready, _pending_attr, _pending_bind
+    global _socketio_ready, _pending_attr, _pending_bind, _pending_display
 
     _socketio_ready = True
     log.info('SocketIO connected')
@@ -143,6 +163,12 @@ def handshake_event():
             bind(*arg)
 
         _pending_bind = []
+
+    if _pending_display:
+        for arg in _pending_display:
+            display_vega(*arg)
+
+        _pending_display = []
 
 
 def disconnect_event():
