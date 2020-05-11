@@ -80,6 +80,26 @@ def text_input(placeholder='', callback=None, id=None):
     return FutureValue(id), input_html
 
 
+class ThreadFlag:
+    def __init__(self):
+        self.running = True
+
+
+RUNNING = None
+
+
+def stop_update_thread():
+    global RUNNING
+
+    # set the flag of the previous thread to false
+    if RUNNING is not None:
+        RUNNING.running = False
+
+    # Make a new flag for the new thread
+    RUNNING = ThreadFlag()
+    return RUNNING
+
+
 def streaming_iterator(id: str, name: str, callback, delay=1):
     """
 
@@ -96,6 +116,12 @@ def streaming_iterator(id: str, name: str, callback, delay=1):
 
     delay: int
         Sleep time in second before sending data to the browser
+
+    Notes
+    -----
+
+    Only on update thread can exist at any given time.
+    If a new thread is spawn the old one will exit.
     """
     from datetime import datetime
 
@@ -112,12 +138,16 @@ def streaming_iterator(id: str, name: str, callback, delay=1):
         socket = socketio.Client()
         socket.connect(f'http://{host()}:{port()}')
 
+        flag = stop_update_thread()
         for fragment in callback():
             # Get rid of non jsonable stuff
             good_json = json.loads(json.dumps(fragment, default=to_dict))
 
             socket.emit(event='remote_process_result', data=make_remote_call(
                 send_new_data_vega, id, name, good_json))
+
+            if not flag.running:
+                break
 
     t = threading.Thread(target=run)
     t.start()
@@ -133,7 +163,6 @@ def realtime_altair_plot(chart, generator, id=None, dataset_name=None):
         id = _gen_sym(id)
 
     chart.data = alt.Data(name=dataset_name)
-
     buffer = io.StringIO()
     chart.save(buffer, 'json')
     json_spec = json.loads(buffer.getvalue())
