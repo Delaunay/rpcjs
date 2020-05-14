@@ -46,17 +46,6 @@ socket.on("bind", function(data) {
 });
 
 
-socket.on("set_html", function(data) {
-    log("set_html " + data);
-
-    var id = data["id"];
-    var data = data["html"];
-
-    var element = document.getElementById(id)
-    element.innerHTML = data
-});
-
-
 socket.on("set_attribute", function(data) {
     log("set_attribute " + data);
 
@@ -68,23 +57,45 @@ socket.on("set_attribute", function(data) {
     element.setAttribute(attribute, value);
 });
 
+socket.on("set_property", function(data) {
+    log("set_property " + data);
+
+    var id = data["id"];
+    var property = data["property"];
+    var value = data["value"];
+
+    var element = document.getElementById(id)
+    element[property] = value;
+});
+
+function new_html_node(htmlString) {
+  var div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return div.firstChild;
+}
+
+function new_html_nodes(htmlString) {
+  var div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return div.childNodes;
+}
+
+socket.on("append_child", function(data) {
+    log("append_child " + data);
+
+    var id = data["id"];
+    var value = new_html_node(data["node"]);
+
+    var element = document.getElementById(id)
+    element.appendChild(value);
+});
+
 
 socket.on("redirect", function(data) {
     log("redirect to " + data);
 
     var url = data["url"];
     window.location.href = url;
-});
-
-
-socket.on("set_text", function(data) {
-    log("set_text " + data);
-
-    var id = data["id"];
-    var data = data["html"];
-
-    var element = document.getElementById(id)
-    element.innerText = data
 });
 
 

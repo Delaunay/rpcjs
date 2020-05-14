@@ -33,6 +33,8 @@ def register_event(event, handler, namespace='/'):
 
 _pending_bind = []
 _pending_attr = []
+_pending_props = []
+_pending_append_child = []
 _pending_display = []
 
 
@@ -77,6 +79,54 @@ def set_attribute(id, attribute, value):
     socketio().emit('set_attribute', dict(
         id=id,
         attribute=attribute,
+        value=value
+    ))
+
+
+def append_child(id, node):
+    """Set the attribute of an element on the webpage
+
+    Parameters
+    ----------
+    id: str
+        id of the DOM element
+
+    node: str
+        child node
+    """
+    if not _socketio_ready:
+        _pending_append_child.append((id, node))
+
+    log.debug(f'append_child to {id}')
+
+    socketio().emit('append_child', dict(
+        id=id,
+        node=node
+    ))
+
+
+def set_property(id, property, value):
+    """Set the attribute of an element on the webpage
+
+    Parameters
+    ----------
+    id: str
+        id of the DOM element
+
+    property: str
+        name of the property to set
+
+    value: json
+        new value of the property
+    """
+    if not _socketio_ready:
+        _pending_props.append((id, property, value))
+
+    log.debug(f'set_property {property} of {id}')
+
+    socketio().emit('set_property', dict(
+        id=id,
+        property=property,
         value=value
     ))
 
@@ -147,7 +197,7 @@ def bind(id, event, handler, attribute=None, property=None):
 
 def handshake_event():
     """Called when socketIO connects to the server"""
-    global _socketio_ready, _pending_attr, _pending_bind, _pending_display
+    global _socketio_ready, _pending_attr, _pending_bind, _pending_display, _pending_props, _pending_append_child
 
     _socketio_ready = True
     log.info('SocketIO connected')
@@ -169,6 +219,18 @@ def handshake_event():
             display_vega(*arg)
 
         _pending_display = []
+
+    if _pending_props:
+        for arg in _pending_props:
+            set_property(*arg)
+
+        _pending_props = []
+
+    if _pending_append_child:
+        for arg in _pending_append_child:
+            append_child(*arg)
+
+        _pending_append_child = []
 
 
 def disconnect_event():

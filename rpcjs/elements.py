@@ -399,6 +399,10 @@ def checkbox_input(*args):
     return _radio_check_input(*args, type='checkbox')
 
 
+def test_area():
+    return f'<textarea class="form-control"></textarea>'
+
+
 def text_input(placeholder, id, suggested=None):
     suggestions = ''
     attr = []

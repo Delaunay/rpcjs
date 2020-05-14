@@ -67,9 +67,16 @@ def select_dropdown(options, callback=None, id=None):
     set_promise = set_symbol_callback(id, callback)
 
     def index_to_options(value):
-        set_promise(options[value])
+        try:
+            set_promise(options[value])
+        except IndexError:
+            set_promise(value)
 
-    bind(id, 'change', index_to_options, property='selectedIndex')
+    cb = index_to_options
+    if len(options) == 0:
+        cb = set_promise
+
+    bind(id, 'change', cb, property='selectedIndex')
     return FutureValue(id), select_html
 
 
