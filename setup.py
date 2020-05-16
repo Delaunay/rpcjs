@@ -27,5 +27,13 @@ if __name__ == '__main__':
         ],
         data_files=[('rpcjs', files)],
         setup_requires=['setuptools'],
-        tests_require=['pytest', 'flake8', 'codecov', 'pytest-cov'],
+        tests_require=[
+            'pytest', 'flake8', 'codecov', 'pytest-cov'
+        ],
+        install_requires=[
+            'altair',
+            'eventlet',
+            'flask',
+            'flask-socketio'
+        ]
     )
