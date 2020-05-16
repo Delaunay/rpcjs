@@ -22,11 +22,15 @@ if __name__ == '__main__':
         version='0.0.0',
         description='Small Dashboard library',
         author='Pierre Delaunay',
+        include_package_data=True,
+        package_data={
+            '': ['*.css', '*.js'],
+        },
         packages=[
             'rpcjs',
         ],
-        data_files=[('rpcjs/static', files)],
-        setup_requires=['setuptools'],
+        use_scm_version=True,
+        setup_requires=['setuptools', 'setuptools-git'],
         tests_require=[
             'pytest', 'flake8', 'codecov', 'pytest-cov'
         ],
