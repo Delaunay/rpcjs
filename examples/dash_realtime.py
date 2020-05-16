@@ -9,8 +9,12 @@ source = data.cars()
 
 
 def streamed_car():
+    import time
+    time.sleep(1)
+
     streamed = source.to_dict('records')
     for row in streamed:
+        time.sleep(0.25)
         yield row
 
 

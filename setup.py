@@ -38,6 +38,7 @@ if __name__ == '__main__':
             'altair',
             'eventlet',
             'flask',
-            'flask-socketio'
+            'flask-socketio',
+            'requests'
         ]
     )
