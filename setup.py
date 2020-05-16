@@ -25,7 +25,7 @@ if __name__ == '__main__':
         packages=[
             'rpcjs',
         ],
-        data_files=[('rpcjs', files)],
+        data_files=[('rpcjs/static', files)],
         setup_requires=['setuptools'],
         tests_require=[
             'pytest', 'flake8', 'codecov', 'pytest-cov'
