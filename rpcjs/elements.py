@@ -27,6 +27,55 @@ def get_resources():
     return BOOTSTRAP, DARKLY, BOOTSTRAP_JS, JQUERY, POPPER, SOCKETIO, CUSTOM_JS
 
 
+def _process_attr(attrs):
+    attr = []
+
+    classes = attrs.pop('classes', None)
+    if classes is not None:
+        attrs['class'] = classes
+
+    for name, value in attrs.items():
+        attr.append(f'{name}="{value}"')
+
+    return ' '.join(attr)
+
+
+def _html_tag(tag, *content, **kwargs):
+    """
+
+    Examples
+    --------
+
+    >>> _html_tag('li', 'my list item', classes="list-group-item")
+    '<li class="list-group-item">my list item</li>'
+
+    >>> _html_tag('p', 'my paragraph', style="color:red")
+    '<p style="color:red">my paragraph</p>'
+
+    """
+    attr = _process_attr(kwargs)
+    content = ' '.join(content)
+    return f'<{tag} {attr}>{content}</{tag}>'
+
+
+def html_tag_maker(tag, docstring=''):
+    def new_tag(*content, **kwargs):
+        return _html_tag(tag, *content, **kwargs)
+
+    new_tag.__docstring__ = docstring
+    return new_tag
+
+
+def image(**kwargs):
+    attr = _process_attr(kwargs)
+    return f'<img {attr}>'
+
+
+kbd = html_tag_maker('kbd', 'Keyboard Input')
+samp = html_tag_maker('samp', 'Computer Output')
+var = html_tag_maker('var', 'Variable')
+
+
 def ul(items) -> HTML:
     """Generate an unordered list
 
@@ -476,12 +525,12 @@ def pyplot_plot(figure, **save_args):
 
 def spinner():
     return """
-<div class="text-center">
-  <div class="spinner-border" role="status">
-    <span class="sr-only">Loading...</span>
-  </div>
-</div>
-    """
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+        </div>
+        """
 
 
 def iframe_spinner():
