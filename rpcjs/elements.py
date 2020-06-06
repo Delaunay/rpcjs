@@ -76,6 +76,17 @@ samp = html_tag_maker('samp', 'Computer Output')
 var = html_tag_maker('var', 'Variable')
 
 
+def li(*item: HTML) -> HTML:
+    """List Item
+
+    Parameters
+    ----------
+    item: HTML
+    """
+
+    return f'<li>{chain(*item)}</li>'
+
+
 def ul(items) -> HTML:
     """Generate an unordered list
 
@@ -419,6 +430,19 @@ def select_dropdown(options, id=None):
         {html_options}
     </select>
     """
+
+
+def number_input(id, min=None, max=None, name=None):
+    attr = []
+    if min is not None:
+        attr.append(f'min="{min}"')
+    if max is not None:
+        attr.append(f'max="{max}"')
+    if name is not None:
+        attr.append(f'name="{max}"')
+
+    attr = ' '.join(attr)
+    return f'<input type="number" {attr} id="{id}">'
 
 
 def submit_input(name, id):

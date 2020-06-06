@@ -7,6 +7,7 @@ import logging
 
 from .elements import select_dropdown as static_select
 from .elements import text_input as static_text_input, div
+from .elements import number_input as static_number_input
 
 from .dashboard import host, port
 from .binding import bind, send_new_data_vega, display_vega
@@ -63,7 +64,6 @@ class FutureValue:
 def select_dropdown(options, callback=None, id=None):
     id = _gen_sym(id)
     select_html = static_select(options, id)
-
     set_promise = set_symbol_callback(id, callback)
 
     def index_to_options(value):
@@ -80,10 +80,19 @@ def select_dropdown(options, callback=None, id=None):
     return FutureValue(id), select_html
 
 
+def number_input(min=None, max=None, callback=None, id=None):
+    id = _gen_sym(id)
+    select_html = static_number_input(id=id, min=min, max=max)
+    set_promise = set_symbol_callback(id, callback)
+
+    bind(id, 'change', set_promise, property='value')
+    return FutureValue(id), select_html
+
+
 def text_input(placeholder='', callback=None, id=None):
     id = _gen_sym(id)
     input_html = static_text_input(placeholder, id)
-    bind('study_prefix', 'change', set_symbol_callback(id, callback), property='value')
+    bind(id, 'change', set_symbol_callback(id, callback), property='value')
     return FutureValue(id), input_html
 
 
